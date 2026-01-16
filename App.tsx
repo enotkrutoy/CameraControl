@@ -80,7 +80,8 @@ const App: React.FC = () => {
     }
   };
 
-  const copyImageToClipboard = async () => {
+  const copyImageToClipboard = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (!result?.imageUrl) return;
     
     try {
@@ -115,8 +116,12 @@ const App: React.FC = () => {
               <p className="text-[10px] text-blue-500 font-mono tracking-tighter uppercase font-bold">Advanced Camera Morphing v1.0</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
-            <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Gemini-3 Engine</span>
+          <div className="flex items-center gap-6 text-sm text-gray-400">
+            <span className="hidden md:flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Gemini-3 Engine</span>
+            <div className="flex items-center gap-1.5 text-xs bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700">
+               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+               Device
+            </div>
           </div>
         </div>
       </header>
@@ -234,21 +239,40 @@ const App: React.FC = () => {
 
           <div className="relative aspect-square rounded-3xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden shadow-inner group">
             {result ? (
-              <div className="w-full h-full relative cursor-zoom-in" onClick={() => setIsLightboxOpen(true)}>
+              <div className="w-full h-full relative cursor-zoom-in group/image" onClick={() => setIsLightboxOpen(true)}>
                 <img 
                   src={result.imageUrl} 
                   alt="Generated Result" 
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain transition-transform duration-500 group-hover/image:scale-[1.01]"
                 />
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-indigo-400 font-mono border border-indigo-500/30">
+                
+                {/* Status Badges */}
+                <div className="absolute top-4 left-4 bg-indigo-500 px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-lg">
+                   ACTIVE
+                </div>
+                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-indigo-400 font-mono border border-indigo-500/30 shadow-xl">
                   EDITED VERSION
                 </div>
-                {/* Floating Action Hint */}
-                <div className="absolute inset-0 bg-indigo-500/0 hover:bg-indigo-500/5 transition-colors flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none">
-                  <div className="bg-black/80 px-4 py-2 rounded-full text-xs font-medium border border-white/10 flex items-center gap-2 translate-y-4 group-hover:translate-y-0 transition-transform">
+
+                {/* Floating Action Hint & Quick Actions */}
+                <div className="absolute inset-0 bg-indigo-500/0 hover:bg-indigo-500/5 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
+                  <div className="bg-black/90 px-5 py-2.5 rounded-full text-xs font-semibold border border-white/10 flex items-center gap-3 translate-y-4 group-hover/image:translate-y-0 transition-transform shadow-2xl">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
-                    Click to View Full Size
+                    Full Size Preview
                   </div>
+                  
+                  {/* Quick Copy Button Overlay */}
+                  <button 
+                    onClick={copyImageToClipboard}
+                    className="absolute bottom-6 right-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/10 text-white transition-all hover:scale-110 active:scale-90"
+                    title="Quick Copy"
+                  >
+                    {copyStatus === 'success' ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400"><path d="M20 6 9 17l-5-5"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                    )}
+                  </button>
                 </div>
               </div>
             ) : (
@@ -279,21 +303,30 @@ const App: React.FC = () => {
           {result && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 bg-gray-900/50 p-3 rounded-xl border border-gray-800">
-                  <p className="text-[10px] text-gray-500 uppercase">Resolution</p>
-                  <p className="text-sm font-mono text-gray-300">{result.settings.width}x{result.settings.height}</p>
+                <div className="flex-1 bg-gray-900/50 p-3 rounded-xl border border-gray-800 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase">Resolution</p>
+                    <p className="text-sm font-mono text-gray-300">{result.settings.width}x{result.settings.height}</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 transition-colors"
+                    title="View Fullscreen"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                  </button>
                 </div>
                 <button
                   onClick={copyImageToClipboard}
                   className={`
                     flex-1 p-3 rounded-xl border flex items-center justify-center gap-2 transition-all font-medium text-sm
-                    ${copyStatus === 'success' ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800'}
+                    ${copyStatus === 'success' ? 'bg-green-500/10 border-green-500/50 text-green-400 shadow-lg shadow-green-500/10' : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800'}
                   `}
                 >
                   {copyStatus === 'success' ? (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      Copied!
+                      Image Copied
                     </>
                   ) : copyStatus === 'error' ? (
                     <>
@@ -343,38 +376,49 @@ const App: React.FC = () => {
       {/* Lightbox Modal */}
       {isLightboxOpen && result && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
+          className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
           onClick={() => setIsLightboxOpen(false)}
         >
+          {/* Close Area */}
           <button 
-            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[110]"
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-[110] hover:scale-110 active:scale-90"
             onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
-          <div className="relative max-w-full max-h-full flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
-             <img 
-                src={result.imageUrl} 
-                alt="Full size view" 
-                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/5"
-             />
-             <div className="flex items-center gap-4">
+          
+          <div className="relative max-w-7xl w-full h-full flex flex-col items-center justify-center gap-6" onClick={(e) => e.stopPropagation()}>
+             <div className="relative w-full h-full flex items-center justify-center">
+                <img 
+                  src={result.imageUrl} 
+                  alt="Full size view" 
+                  className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-[0_0_100px_rgba(59,130,246,0.15)] border border-white/5 animate-in zoom-in-95 duration-500"
+                />
+             </div>
+             
+             <div className="flex flex-wrap items-center justify-center gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-150">
                 <button
                   onClick={copyImageToClipboard}
-                  className="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full text-white text-sm font-medium transition-colors border border-white/10 flex items-center gap-2"
+                  className={`
+                    px-8 py-3 rounded-full text-sm font-bold transition-all border flex items-center gap-2 shadow-2xl
+                    ${copyStatus === 'success' ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'}
+                  `}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                  {copyStatus === 'success' ? 'Copied to Clipboard' : 'Copy Image'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                  {copyStatus === 'success' ? 'Copied' : 'Copy to Clipboard'}
                 </button>
                 <a 
                   href={result.imageUrl} 
-                  download={`qwencam_${Date.now()}.png`}
-                  className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-white text-sm font-medium transition-colors flex items-center gap-2"
+                  download={`qwencam_export_${Date.now()}.png`}
+                  className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-full text-white text-sm font-bold transition-all flex items-center gap-2 shadow-2xl shadow-blue-500/30 hover:scale-105 active:scale-95"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Download PNG
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download HD
                 </a>
              </div>
+             
+             <p className="text-gray-500 text-[10px] uppercase tracking-[0.3em] font-bold">Spatial Engine High Fidelity View</p>
           </div>
         </div>
       )}
