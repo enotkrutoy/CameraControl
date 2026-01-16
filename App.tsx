@@ -10,7 +10,6 @@ import { GenerationSettingsPanel } from './components/GenerationSettings';
 import { geminiService } from './services/geminiService';
 
 const App: React.FC = () => {
-  // State
   const { state: cameraState, updateState: updateCamera, reset: resetCamera, generatedPrompt } = useCameraControls();
   const [settings, setSettings] = useState<GenerationSettings>(DEFAULT_SETTINGS);
   const [sourceImage, setSourceImage] = useState<ImageData | null>(null);
@@ -20,32 +19,35 @@ const App: React.FC = () => {
   const [videoResult, setVideoResult] = useState<VideoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Lightbox & Clipboard state
+  // Advanced UX States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
 
-  // Persistence
+  // Handle ESC key for Lightbox and scroll locking
   useEffect(() => {
-    const saved = localStorage.getItem('qwencam_settings');
-    if (saved) {
-      try {
-        setSettings(JSON.parse(saved));
-      } catch (e) { console.error("Failed to load saved settings"); }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLightboxOpen(false);
+    };
+
+    if (isLightboxOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = 'unset';
     }
-  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('qwencam_settings', JSON.stringify(settings));
-  }, [settings]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isLightboxOpen]);
 
   // Actions
   const handleGenerate = async () => {
     if (!sourceImage) return;
-
     setIsGenerating(true);
     setError(null);
     setVideoResult(null);
-
     try {
       const editedImageUrl = await geminiService.generateImage(sourceImage, generatedPrompt, settings);
       setResult({
@@ -56,8 +58,7 @@ const App: React.FC = () => {
         cameraState: { ...cameraState },
       });
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An error occurred during generation.");
+      setError(err.message || "Perspective transformation failed.");
     } finally {
       setIsGenerating(false);
     }
@@ -65,38 +66,38 @@ const App: React.FC = () => {
 
   const handleCreateVideo = async () => {
     if (!sourceImage || !result) return;
-
+    setIsGenerating(true); 
     try {
-      setIsGenerating(true); 
       const videoUrl = await geminiService.generateTransitionVideo(sourceImage.base64, result.imageUrl);
-      setVideoResult({
-        videoUrl,
-        timestamp: Date.now(),
-      });
+      setVideoResult({ videoUrl, timestamp: Date.now() });
     } catch (err) {
-      setError("Failed to generate transition video.");
+      setError("Video synthesis failed.");
     } finally {
       setIsGenerating(false);
     }
   };
 
+  /**
+   * World-class Clipboard implementation
+   * Ensures wide compatibility by forcing correct Mime Types
+   */
   const copyImageToClipboard = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!result?.imageUrl) return;
     
+    setCopyStatus('loading');
     try {
-      setCopyStatus('idle');
-      // Поскольку результат — это data:URL, fetch работает локально
       const response = await fetch(result.imageUrl);
       const blob = await response.blob();
       
-      const item = new ClipboardItem({ [blob.type]: blob });
-      await navigator.clipboard.write([item]);
+      // Ensure we use the proper clipboard type (image/png is standard)
+      const data = [new ClipboardItem({ [blob.type]: blob })];
+      await navigator.clipboard.write(data);
       
       setCopyStatus('success');
       setTimeout(() => setCopyStatus('idle'), 2000);
     } catch (err) {
-      console.error("Failed to copy image: ", err);
+      console.error("Clipboard Error:", err);
       setCopyStatus('error');
       setTimeout(() => setCopyStatus('idle'), 2000);
     }
@@ -113,21 +114,21 @@ const App: React.FC = () => {
             </div>
             <div>
               <h1 className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">QwenCam Studio</h1>
-              <p className="text-[10px] text-blue-500 font-mono tracking-tighter uppercase font-bold">Advanced Camera Morphing v1.0</p>
+              <p className="text-[10px] text-blue-500 font-mono tracking-tighter uppercase font-bold">Spatial Intelligence Engine</p>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
-            <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Gemini-3 Engine</span>
+            <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Gemini-3 High-Fidelity</span>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto p-4 lg:p-8 grid lg:grid-cols-2 gap-8 lg:items-start">
-        {/* Left Column: Controls */}
+        {/* Left Column: Input and Controls */}
         <div className="space-y-6">
           <section className="space-y-4">
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-1 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Input Selection
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Canvas Input
             </h2>
             {sourceImage ? (
               <div className="relative group rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-2xl">
@@ -138,15 +139,15 @@ const App: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                  <div>
+                  <div className="max-w-[70%]">
                     <p className="text-xs font-medium text-white truncate">{sourceImage.name}</p>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-tighter">{(sourceImage.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-[10px] text-gray-400 font-mono">{(sourceImage.size / 1024).toFixed(1)} KB</p>
                   </div>
                   <button 
                     onClick={() => { setSourceImage(null); setResult(null); setVideoResult(null); }}
-                    className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40 transition-colors"
+                    className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40 transition-all hover:rotate-90"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 </div>
               </div>
@@ -156,26 +157,21 @@ const App: React.FC = () => {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-1 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Camera Control
-            </h2>
-            
-            <div className="bg-gray-900/50 rounded-2xl border border-gray-800 overflow-hidden">
+            <div className="bg-gray-900/50 rounded-2xl border border-gray-800 overflow-hidden shadow-xl">
               <div className="flex border-b border-gray-800">
                 <button 
                   onClick={() => setActiveTab('3d')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === '3d' ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-300'}`}
+                  className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === '3d' ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                   3D Manipulator
                 </button>
                 <button 
                   onClick={() => setActiveTab('sliders')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'sliders' ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-300'}`}
+                  className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'sliders' ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                  Slider Matrix
+                  Control Matrix
                 </button>
               </div>
-              
               <div className="p-4">
                 {activeTab === '3d' ? (
                   <Camera3DControl state={cameraState} onChange={updateCamera} />
@@ -186,93 +182,74 @@ const App: React.FC = () => {
             </div>
           </section>
 
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest px-1">Live Prompt Matrix</h3>
-            <div className="bg-gray-900/80 p-4 rounded-xl border border-gray-800 font-mono text-xs text-blue-300/80 leading-relaxed shadow-inner">
-              {generatedPrompt}
-            </div>
-          </section>
-
           <GenerationSettingsPanel settings={settings} onChange={(u) => setSettings(s => ({...s, ...u}))} />
 
           <button
             onClick={handleGenerate}
             disabled={!sourceImage || isGenerating}
             className={`
-              w-full py-4 rounded-2xl font-bold text-lg shadow-2xl transition-all flex items-center justify-center gap-3
+              w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-3
               ${(!sourceImage || isGenerating) 
                 ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 scale-[1.02] active:scale-[0.98]'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 active:scale-95'
               }
             `}
           >
             {isGenerating ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Processing Vector Fields...
-              </>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 14 7-7 7 7"/><path d="M12 7v14"/></svg>
-                Generate Edited Frame
-              </>
-            )}
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : "Render Frame"}
           </button>
           
           {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm flex items-start gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {error}
+            <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-xs font-mono animate-in slide-in-from-top-2">
+              [SYSTEM_ERR]: {error}
             </div>
           )}
         </div>
 
-        {/* Right Column: Output */}
-        <div className="space-y-6 sticky top-24">
+        {/* Right Column: Results */}
+        <div className="space-y-6 lg:sticky lg:top-24">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-1 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Virtual Output
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Output Buffer
           </h2>
 
-          <div className="relative aspect-square rounded-3xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden shadow-inner group">
+          <div className="relative aspect-square rounded-3xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden shadow-2xl group">
             {result ? (
-              <div className="w-full h-full relative cursor-zoom-in group/image" onClick={() => setIsLightboxOpen(true)}>
+              <div className="w-full h-full relative cursor-zoom-in overflow-hidden" onClick={() => setIsLightboxOpen(true)}>
                 <img 
                   src={result.imageUrl} 
-                  alt="Generated Result" 
-                  className="w-full h-full object-contain transition-transform duration-500 group-hover/image:scale-[1.02]"
+                  alt="Result" 
+                  className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
                 />
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-indigo-400 font-mono border border-indigo-500/30">
-                  EDITED VERSION
-                </div>
                 
-                {/* Floating Hint Overlay */}
-                <div className="absolute inset-0 bg-blue-500/0 hover:bg-blue-500/5 transition-colors flex flex-col items-center justify-center opacity-0 group-hover/image:opacity-100">
-                   <div className="bg-black/80 px-4 py-2 rounded-full text-xs font-bold border border-white/10 flex items-center gap-2 translate-y-4 group-hover/image:translate-y-0 transition-transform">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
-                      Click to View Full Size
+                {/* Advanced Overlay */}
+                <div className="absolute inset-0 bg-blue-600/0 hover:bg-blue-600/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                   <div className="bg-black/90 px-5 py-2 rounded-full text-[10px] font-bold border border-white/10 flex items-center gap-3 translate-y-4 group-hover:translate-y-0 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                      INSPECT FULL FRAME
                    </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center p-8">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-700 animate-pulse">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              <div className="text-center p-8 space-y-4">
+                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto text-gray-700 animate-pulse">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                 </div>
-                <p className="text-gray-600 text-sm font-medium">Modified perspective will appear here</p>
+                <p className="text-gray-600 text-xs font-bold uppercase tracking-tighter">Waiting for spatial input</p>
               </div>
             )}
 
             {isGenerating && (
-              <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-4">
+              <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 z-10">
                 <div className="relative">
                   <div className="w-16 h-16 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-indigo-500/10 border-b-indigo-500 rounded-full animate-spin-slow"></div>
                   </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-blue-400 font-mono text-sm animate-pulse">RECONSTRUCTING MESH...</p>
-                  <p className="text-gray-500 text-[10px] uppercase tracking-widest mt-1">Applying LoRA Weights</p>
+                <div className="text-center space-y-1">
+                  <p className="text-blue-400 font-mono text-xs animate-pulse">RECONSTRUCTING_GEOMETRY...</p>
+                  <p className="text-gray-500 text-[10px] font-mono">STEP_ {settings.steps} / INF</p>
                 </div>
               </div>
             )}
@@ -280,31 +257,30 @@ const App: React.FC = () => {
 
           {result && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 bg-gray-900/50 p-3 rounded-xl border border-gray-800">
-                  <p className="text-[10px] text-gray-500 uppercase">Resolution</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">DIMS</p>
                   <p className="text-sm font-mono text-gray-300">{result.settings.width}x{result.settings.height}</p>
                 </div>
                 
                 <button
                   onClick={copyImageToClipboard}
                   className={`
-                    flex-1 p-3 rounded-xl border flex items-center justify-center gap-2 transition-all font-bold text-sm
+                    p-4 rounded-xl border flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest
                     ${copyStatus === 'success' 
                       ? 'bg-green-500/10 border-green-500/50 text-green-400' 
-                      : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800 active:scale-95'
+                      : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800'
                     }
                   `}
                 >
-                  {copyStatus === 'success' ? (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      Copied to Clipboard
-                    </>
+                  {copyStatus === 'loading' ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  ) : copyStatus === 'success' ? (
+                    "COPIED!"
                   ) : (
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                      Copy Image
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                      COPY_IMG
                     </>
                   )}
                 </button>
@@ -314,22 +290,13 @@ const App: React.FC = () => {
                 <button
                   onClick={handleCreateVideo}
                   disabled={isGenerating}
-                  className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl border border-gray-700 transition-all flex items-center justify-center gap-2 group shadow-xl"
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-[0.2em] rounded-xl transition-all shadow-xl shadow-indigo-500/10 active:scale-[0.98]"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:text-blue-400 transition-colors"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
-                  Synthesize Transition Video
+                  Synthesize Transition
                 </button>
               ) : (
-                <div className="space-y-4">
-                  <div className="relative rounded-2xl overflow-hidden bg-black border border-gray-800 shadow-2xl aspect-video flex items-center justify-center">
-                    <video 
-                      src={videoResult.videoUrl} 
-                      controls 
-                      autoPlay 
-                      loop
-                      className="w-full h-full"
-                    />
-                  </div>
+                <div className="relative rounded-2xl overflow-hidden bg-black border border-gray-800 shadow-2xl aspect-video group">
+                  <video src={videoResult.videoUrl} controls autoPlay loop className="w-full h-full" />
                 </div>
               )}
             </div>
@@ -337,65 +304,58 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Lightbox Modal */}
+      {/* World-Class Lightbox */}
       {isLightboxOpen && result && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
+          className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-xl flex flex-col items-center justify-center p-4 sm:p-12 animate-in fade-in duration-300 cursor-zoom-out"
           onClick={() => setIsLightboxOpen(false)}
         >
-          <button 
-            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[110]"
-            onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
+          {/* Controls Overlay */}
+          <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center pointer-events-none">
+             <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-mono text-gray-400">
+               QWENCAM_SESSION_ID: {result.timestamp}
+             </div>
+             <button 
+                className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white pointer-events-auto transition-all hover:rotate-90"
+                onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+             >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+             </button>
+          </div>
           
           <div 
-            className="relative max-w-full max-h-full flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500" 
+            className="relative max-w-full max-h-full flex flex-col items-center gap-8 animate-in zoom-in-95 duration-500" 
             onClick={(e) => e.stopPropagation()}
           >
              <img 
                 src={result.imageUrl} 
-                alt="Full size result" 
-                className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-[0_0_80px_rgba(59,130,246,0.2)] border border-white/10"
+                alt="Lightbox View" 
+                className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-[0_0_120px_rgba(59,130,246,0.15)] select-none pointer-events-none"
              />
              
-             <div className="flex flex-wrap items-center justify-center gap-4">
+             <div className="flex flex-wrap items-center justify-center gap-4 bg-black/60 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
                 <button
                   onClick={copyImageToClipboard}
-                  className={`
-                    px-8 py-3 rounded-full text-sm font-bold transition-all border flex items-center gap-2
-                    ${copyStatus === 'success' 
-                      ? 'bg-green-500/20 border-green-500/50 text-green-400' 
-                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'
-                    }
-                  `}
+                  className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold uppercase tracking-widest text-white transition-all border border-white/10"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                  {copyStatus === 'success' ? 'Image Copied!' : 'Copy to Clipboard'}
+                  {copyStatus === 'success' ? "COPIED" : "COPY FRAME"}
                 </button>
                 
                 <a 
                   href={result.imageUrl} 
-                  download={`qwencam_${Date.now()}.png`}
-                  className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-full text-white text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
+                  download={`render_${result.timestamp}.png`}
+                  className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl text-white text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Download HD Frame
+                  DOWNLOAD HD
                 </a>
              </div>
           </div>
         </div>
       )}
 
-      {/* Footer Info */}
-      <footer className="max-w-7xl mx-auto px-4 py-12 text-center text-gray-600 text-xs border-t border-gray-900/50 mt-12">
-        <p>&copy; 2024 QwenCam AI Studio. Powered by Qwen-Edit-2509 & Gemini-3 Native Pipeline.</p>
-        <div className="flex justify-center gap-4 mt-2">
-          <a href="#" className="hover:text-gray-400 transition-colors">Documentation</a>
-          <a href="#" className="hover:text-gray-400 transition-colors">API Status</a>
-          <a href="#" className="hover:text-gray-400 transition-colors">GitHub</a>
-        </div>
+      {/* Footer System Info */}
+      <footer className="max-w-7xl mx-auto px-4 py-12 text-center text-gray-700 text-[10px] font-mono uppercase tracking-[0.4em] mt-12">
+        QWENCAM STUDIO // SPATIAL_PERSPECTIVE_MODULE_V1.2 // GOOGLE_GENAI_PIPELINE
       </footer>
       
       <style>{`
@@ -404,7 +364,7 @@ const App: React.FC = () => {
           to { transform: rotate(-360deg); }
         }
         .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
+          animation: spin-slow 4s linear infinite;
         }
       `}</style>
     </div>
