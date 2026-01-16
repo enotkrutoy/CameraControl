@@ -1,19 +1,17 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { ImageData, GenerationSettings, CameraControlState } from "../types";
-import { MODEL_NAME } from "../constants";
+import { ImageData, GenerationSettings } from "../types";
 
 export class GeminiService {
   /**
    * Generates an edited image based on camera prompts.
-   * Using Gemini 2.5 Flash Image which is optimized for direct image-to-image transformations.
    */
   async generateImage(
     sourceImage: ImageData,
     cameraPrompt: string,
     settings: GenerationSettings
   ): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const imagePart = {
       inlineData: {
@@ -23,52 +21,35 @@ export class GeminiService {
     };
 
     const textPart = {
-      text: `ACT AS A PROFESSIONAL CINEMATOGRAPHER.
-Your task is to re-render the provided image from a NEW CAMERA ANGLE.
-
-CAMERA INSTRUCTIONS:
-${cameraPrompt}
-
-TECHNICAL CONSTRAINTS:
-1. Maintain 100% consistency of objects, colors, and lighting from the original image.
-2. The transformation MUST reflect the exact rotation, tilt, and focal length change requested.
-3. If wide-angle is requested, add peripheral context and characteristic lens distortion.
-4. Output ONLY the resulting image.
-
-Generation Seed: ${settings.seed}
-Inference Steps: ${settings.steps}`
+      text: `ACT AS A PROFESSIONAL PHOTOGRAPHER. 
+      Re-render this image following these spatial modifications: ${cameraPrompt}. 
+      
+      CRITICAL INSTRUCTIONS:
+      1. Keep the main subject (the object) identical in design, texture, and branding.
+      2. If floating/levitation is requested, ensure the object is clearly in the air with a soft shadow on the floor below it to indicate elevation.
+      3. Maintain the background environment, lighting, and floor tiling perfectly.
+      4. Use the provided seed ${settings.seed} for deterministic results.
+      5. The final image should look like a single continuous shot with zero artifacts.`
     };
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [imagePart, textPart] },
-      config: {
-        temperature: 0.4, // Lower temperature for higher consistency
-      }
     });
 
     let imageUrl = '';
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-        break;
+    const candidate = response.candidates?.[0];
+    if (candidate?.content?.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData) {
+          imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
       }
     }
 
-    if (!imageUrl) {
-      throw new Error("Perspective transformation failed. Please try a different angle.");
-    }
-
+    if (!imageUrl) throw new Error("Perspective transformation failed. No image returned from model.");
     return imageUrl;
-  }
-
-  /**
-   * Mock service for video generation as described in the context.
-   */
-  async generateTransitionVideo(startImage: string, endImage: string): Promise<string> {
-    await new Promise(resolve => setTimeout(resolve, 3500));
-    // Simulated path for the video result
-    return "https://www.w3schools.com/html/mov_bbb.mp4"; 
   }
 }
 

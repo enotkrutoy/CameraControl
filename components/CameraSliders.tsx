@@ -23,6 +23,25 @@ export const CameraSliders: React.FC<Props> = ({ state, onChange, onReset }) => 
       </div>
 
       <div className="space-y-4">
+        {/* Floating Effect Toggle */}
+        <div className="flex items-center justify-between pb-2 border-b border-gray-700/50">
+          <label className="text-sm font-medium text-blue-400 cursor-pointer select-none flex items-center gap-2">
+            <div className={`w-8 h-4 rounded-full transition-colors relative ${state.floating ? 'bg-blue-600' : 'bg-gray-700'}`}>
+              <input
+                type="checkbox"
+                checked={state.floating}
+                onChange={(e) => onChange({ floating: e.target.checked })}
+                className="hidden"
+              />
+              <div className={`absolute top-1 left-1 w-2 h-2 bg-white rounded-full transition-transform ${state.floating ? 'translate-x-4' : ''}`} />
+            </div>
+            Floating Levitation
+          </label>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${state.floating ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-700 text-gray-500'}`}>
+            {state.floating ? 'LEVTIATION ON' : 'GROUNDED'}
+          </span>
+        </div>
+
         {/* Rotation */}
         <div>
           <div className="flex justify-between mb-1">
@@ -38,11 +57,6 @@ export const CameraSliders: React.FC<Props> = ({ state, onChange, onReset }) => 
             onChange={(e) => onChange({ rotate: parseFloat(e.target.value) })}
             className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
           />
-          <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-            <span>Left (-90)</span>
-            <span>Center (0)</span>
-            <span>Right (+90)</span>
-          </div>
         </div>
 
         {/* Forward */}
@@ -77,11 +91,6 @@ export const CameraSliders: React.FC<Props> = ({ state, onChange, onReset }) => 
             onChange={(e) => onChange({ tilt: parseFloat(e.target.value) })}
             className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
           />
-          <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-            <span>Worm's Eye</span>
-            <span>Neutral</span>
-            <span>Bird's Eye</span>
-          </div>
         </div>
 
         {/* Wide Angle */}

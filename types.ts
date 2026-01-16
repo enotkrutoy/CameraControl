@@ -4,6 +4,7 @@ export interface CameraControlState {
   forward: number; // 0 to 10
   tilt: number; // -1 to 1
   wideAngle: boolean;
+  floating: boolean;
 }
 
 export interface GenerationSettings {
@@ -27,9 +28,4 @@ export interface GenerationResult {
   timestamp: number;
   settings: GenerationSettings;
   cameraState: CameraControlState;
-}
-
-export interface VideoResult {
-  videoUrl: string;
-  timestamp: number;
 }

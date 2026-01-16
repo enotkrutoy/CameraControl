@@ -6,6 +6,7 @@ export const DEFAULT_CAMERA_STATE: CameraControlState = {
   forward: 0,
   tilt: 0,
   wideAngle: false,
+  floating: false,
 };
 
 export const DEFAULT_SETTINGS: GenerationSettings = {

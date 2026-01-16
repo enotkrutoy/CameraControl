@@ -15,36 +15,38 @@ export const useCameraControls = () => {
   }, []);
 
   const buildCameraPrompt = useCallback((s: CameraControlState): string => {
-    if (s.rotate === 0 && s.forward === 0 && s.tilt === 0 && !s.wideAngle) {
+    const segments: string[] = [];
+
+    // Floating Effect (High Priority for spatial logic)
+    if (s.floating) {
+      segments.push("The main object is levitating and floating 50 centimeters in mid-air above the floor. Ensure there is a soft, realistic ambient occlusion shadow cast directly onto the ground below the object to emphasize the height and depth. The object is suspended without support.");
+    } else if (s.rotate === 0 && s.forward === 0 && s.tilt === 0 && !s.wideAngle) {
       return "no camera movement";
     }
-
-    const segments: string[] = [];
 
     // Rotation
     if (s.rotate !== 0) {
       const direction = s.rotate > 0 ? "right" : "left";
-      const zhDir = s.rotate > 0 ? "右" : "左";
-      segments.push(`将镜头向${zhDir}旋转${Math.abs(s.rotate)}度 Rotate the camera ${Math.abs(s.rotate)} degrees to the ${direction}.`);
+      segments.push(`Rotate the camera view ${Math.abs(s.rotate)} degrees to the ${direction}.`);
     }
 
     // Forward / Zoom
     if (s.forward > 5) {
-      segments.push("向前移动镜头 Move the camera forward.");
-    } else if (s.forward > 3) {
-      segments.push("将镜头转为特写镜头 Turn the camera to a close-up.");
+      segments.push("Move the camera closer to the object for a tight shot.");
+    } else if (s.forward > 2) {
+      segments.push("Adjust focal length for a medium-close perspective.");
     }
 
     // Tilt / Pitch
-    if (s.tilt > 0.5) {
-      segments.push("将镜头转为俯视图 Turn the camera to a bird's-eye view.");
-    } else if (s.tilt < -0.5) {
-      segments.push("将镜头转为仰视图 Turn the camera to a worm's-eye view.");
+    if (s.tilt > 0.4) {
+      segments.push("Perspective shift to a high-angle shot looking down.");
+    } else if (s.tilt < -0.4) {
+      segments.push("Perspective shift to a low-angle shot looking up.");
     }
 
     // Wide Angle
     if (s.wideAngle) {
-      segments.push("将镜头转为广角镜头 Turn the camera to a wide-angle lens.");
+      segments.push("Use a wide-angle lens to capture more of the environment and create slight barrel distortion.");
     }
 
     return segments.join(" ");
