@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { ImageData, GenerationSettings } from "../types";
 
@@ -10,7 +11,14 @@ export class GeminiService {
     cameraPrompt: string,
     settings: GenerationSettings
   ): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Note: process.env.API_KEY is replaced by Vite during build time
+    const apiKey = process.env.API_KEY;
+    
+    if (!apiKey) {
+      throw new Error("API Key is missing. Please set it in your environment variables.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
     
     const imagePart = {
       inlineData: {

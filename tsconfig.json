@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
-    /* Strict Mode */
+    /* Strict Mode for Production Quality */
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
