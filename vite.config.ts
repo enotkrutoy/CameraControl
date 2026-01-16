@@ -8,8 +8,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
+      // Прямая замена для process.env.API_KEY
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
-      // Обеспечиваем совместимость с кодом, ожидающим process.env
+      // Глобальный полифилл process.env для предотвращения ошибок ReferenceError
       'process.env': JSON.stringify(env)
     },
     build: {
