@@ -21,7 +21,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Lightbox & Clipboard state
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Persistence
@@ -80,26 +80,19 @@ const App: React.FC = () => {
     }
   };
 
-  /**
-   * Copies an image to the system clipboard.
-   * Works for both generated results and source images.
-   */
-  const copyImageToClipboard = async (imageUrl: string, e?: React.MouseEvent) => {
+  const copyImageToClipboard = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!result?.imageUrl) return;
     
     try {
       setCopyStatus('idle');
-      const response = await fetch(imageUrl);
+      // Поскольку результат — это data:URL, fetch работает локально
+      const response = await fetch(result.imageUrl);
       const blob = await response.blob();
       
-      // PNG is universally supported for clipboard
-      const type = blob.type.includes('png') ? 'image/png' : 'image/png';
+      const item = new ClipboardItem({ [blob.type]: blob });
+      await navigator.clipboard.write([item]);
       
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [type]: blob
-        })
-      ]);
       setCopyStatus('success');
       setTimeout(() => setCopyStatus('idle'), 2000);
     } catch (err) {
@@ -123,12 +116,8 @@ const App: React.FC = () => {
               <p className="text-[10px] text-blue-500 font-mono tracking-tighter uppercase font-bold">Advanced Camera Morphing v1.0</p>
             </div>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <span className="hidden md:flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Gemini-3 Engine</span>
-            <div className="flex items-center gap-1.5 text-xs bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700">
-               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-               Device
-            </div>
+          <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
+            <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Gemini-3 Engine</span>
           </div>
         </div>
       </header>
@@ -145,30 +134,20 @@ const App: React.FC = () => {
                 <img 
                   src={sourceImage.base64} 
                   alt="Original" 
-                  className="w-full aspect-square object-cover opacity-80 group-hover:opacity-100 transition-opacity cursor-zoom-in"
-                  onClick={() => setLightboxImage(sourceImage.base64)}
+                  className="w-full aspect-square object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-white truncate">{sourceImage.name}</p>
                     <p className="text-[10px] text-gray-400 uppercase tracking-tighter">{(sourceImage.size / 1024).toFixed(1)} KB</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => copyImageToClipboard(sourceImage.base64)}
-                      className="p-2 bg-gray-800/80 backdrop-blur-md text-gray-300 rounded-full hover:bg-white/10 transition-colors"
-                      title="Copy Source"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                    </button>
-                    <button 
-                      onClick={() => { setSourceImage(null); setResult(null); setVideoResult(null); }}
-                      className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => { setSourceImage(null); setResult(null); setVideoResult(null); }}
+                    className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -256,34 +235,22 @@ const App: React.FC = () => {
 
           <div className="relative aspect-square rounded-3xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden shadow-inner group">
             {result ? (
-              <div className="w-full h-full relative cursor-zoom-in group/image" onClick={() => setLightboxImage(result.imageUrl)}>
+              <div className="w-full h-full relative cursor-zoom-in group/image" onClick={() => setIsLightboxOpen(true)}>
                 <img 
                   src={result.imageUrl} 
                   alt="Generated Result" 
                   className="w-full h-full object-contain transition-transform duration-500 group-hover/image:scale-[1.02]"
                 />
-                
-                {/* Status Badges */}
-                <div className="absolute top-4 left-4 bg-indigo-500 px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-lg">
-                   ACTIVE
-                </div>
-                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-indigo-400 font-mono border border-indigo-500/30 shadow-xl">
+                <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-indigo-400 font-mono border border-indigo-500/30">
                   EDITED VERSION
                 </div>
-
-                {/* Floating Overlay Controls */}
-                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/image:opacity-100">
-                  <div className="bg-black/90 px-6 py-3 rounded-full text-xs font-bold border border-white/10 flex items-center gap-4 translate-y-4 group-hover/image:translate-y-0 transition-transform shadow-2xl">
-                    <span className="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg> Full View</span>
-                    <div className="w-px h-4 bg-gray-700"></div>
-                    <button 
-                      onClick={(e) => copyImageToClipboard(result.imageUrl, e)}
-                      className="hover:text-blue-400 transition-colors flex items-center gap-2"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                      {copyStatus === 'success' ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
+                
+                {/* Floating Hint Overlay */}
+                <div className="absolute inset-0 bg-blue-500/0 hover:bg-blue-500/5 transition-colors flex flex-col items-center justify-center opacity-0 group-hover/image:opacity-100">
+                   <div className="bg-black/80 px-4 py-2 rounded-full text-xs font-bold border border-white/10 flex items-center gap-2 translate-y-4 group-hover/image:translate-y-0 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+                      Click to View Full Size
+                   </div>
                 </div>
               </div>
             ) : (
@@ -314,39 +281,30 @@ const App: React.FC = () => {
           {result && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 bg-gray-900/50 p-3 rounded-xl border border-gray-800 flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase">Resolution</p>
-                    <p className="text-sm font-mono text-gray-300">{result.settings.width}x{result.settings.height}</p>
-                  </div>
-                  <button 
-                    onClick={() => setLightboxImage(result.imageUrl)}
-                    className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
-                  </button>
+                <div className="flex-1 bg-gray-900/50 p-3 rounded-xl border border-gray-800">
+                  <p className="text-[10px] text-gray-500 uppercase">Resolution</p>
+                  <p className="text-sm font-mono text-gray-300">{result.settings.width}x{result.settings.height}</p>
                 </div>
+                
                 <button
-                  onClick={() => copyImageToClipboard(result.imageUrl)}
+                  onClick={copyImageToClipboard}
                   className={`
-                    flex-1 p-3 rounded-xl border flex items-center justify-center gap-2 transition-all font-medium text-sm
-                    ${copyStatus === 'success' ? 'bg-green-500/10 border-green-500/50 text-green-400 shadow-lg shadow-green-500/10' : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800'}
+                    flex-1 p-3 rounded-xl border flex items-center justify-center gap-2 transition-all font-bold text-sm
+                    ${copyStatus === 'success' 
+                      ? 'bg-green-500/10 border-green-500/50 text-green-400' 
+                      : 'bg-gray-900/50 border-gray-800 text-gray-300 hover:bg-gray-800 active:scale-95'
+                    }
                   `}
                 >
                   {copyStatus === 'success' ? (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      Copied Image
-                    </>
-                  ) : copyStatus === 'error' ? (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      Copy Failed
+                      Copied to Clipboard
                     </>
                   ) : (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                      Copy to Clipboard
+                      Copy Image
                     </>
                   )}
                 </button>
@@ -356,7 +314,7 @@ const App: React.FC = () => {
                 <button
                   onClick={handleCreateVideo}
                   disabled={isGenerating}
-                  className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl border border-gray-700 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl border border-gray-700 transition-all flex items-center justify-center gap-2 group shadow-xl"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:text-blue-400 transition-colors"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.934a.5.5 0 0 0-.777-.416L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
                   Synthesize Transition Video
@@ -372,10 +330,6 @@ const App: React.FC = () => {
                       className="w-full h-full"
                     />
                   </div>
-                  <div className="flex justify-between items-center text-[10px] text-gray-500 uppercase px-1">
-                    <span>Wan-2.2 Video Model</span>
-                    <span>1080p Interpolation</span>
-                  </div>
                 </div>
               )}
             </div>
@@ -383,49 +337,51 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Full Size Lightbox Modal */}
-      {lightboxImage && (
+      {/* Lightbox Modal */}
+      {isLightboxOpen && result && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
-          onClick={() => setLightboxImage(null)}
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
+          onClick={() => setIsLightboxOpen(false)}
         >
-          {/* Close Button Area */}
           <button 
-            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-[110] hover:scale-110 active:scale-90 shadow-xl"
-            onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
+            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[110]"
+            onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
           
-          <div className="relative max-w-7xl w-full h-full flex flex-col items-center justify-center gap-8" onClick={(e) => e.stopPropagation()}>
-             <div className="relative w-full h-full flex items-center justify-center">
-                <img 
-                  src={lightboxImage} 
-                  alt="Full size view" 
-                  className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-[0_0_100px_rgba(59,130,246,0.1)] border border-white/5 animate-in zoom-in-95 duration-500 select-none"
-                />
-             </div>
+          <div 
+            className="relative max-w-full max-h-full flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500" 
+            onClick={(e) => e.stopPropagation()}
+          >
+             <img 
+                src={result.imageUrl} 
+                alt="Full size result" 
+                className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-[0_0_80px_rgba(59,130,246,0.2)] border border-white/10"
+             />
              
-             {/* Modal Actions */}
-             <div className="flex flex-wrap items-center justify-center gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-150">
+             <div className="flex flex-wrap items-center justify-center gap-4">
                 <button
-                  onClick={(e) => copyImageToClipboard(lightboxImage, e)}
+                  onClick={copyImageToClipboard}
                   className={`
-                    px-8 py-3 rounded-full text-sm font-bold transition-all border flex items-center gap-2 shadow-2xl
-                    ${copyStatus === 'success' ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'}
+                    px-8 py-3 rounded-full text-sm font-bold transition-all border flex items-center gap-2
+                    ${copyStatus === 'success' 
+                      ? 'bg-green-500/20 border-green-500/50 text-green-400' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'
+                    }
                   `}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
                   {copyStatus === 'success' ? 'Image Copied!' : 'Copy to Clipboard'}
                 </button>
+                
                 <a 
-                  href={lightboxImage} 
-                  download={`qwencam_export_${Date.now()}.png`}
-                  className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-full text-white text-sm font-bold transition-all flex items-center gap-2 shadow-2xl shadow-blue-500/30 hover:scale-105 active:scale-95"
-                  onClick={(e) => e.stopPropagation()}
+                  href={result.imageUrl} 
+                  download={`qwencam_${Date.now()}.png`}
+                  className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-full text-white text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Download Frame
+                  Download HD Frame
                 </a>
              </div>
           </div>
