@@ -4,9 +4,6 @@ import { ImageData, GenerationSettings } from "../types";
 import { MODELS } from "../constants";
 
 export class GeminiService {
-  /**
-   * Generates an edited image based on camera prompts.
-   */
   async generateImage(
     sourceImage: ImageData,
     cameraPrompt: string,
@@ -28,20 +25,25 @@ export class GeminiService {
       },
     };
 
+    const creativeDirective = settings.creativeContext 
+      ? `[ATMOSPHERE & STYLE OVERRIDE: ${settings.creativeContext}]`
+      : "[STYLE: Maintain original image style and lighting perfectly]";
+
     const textPart = {
-      text: `[SYSTEM_INSTRUCTION: ACT AS A MASTER CINEMATOGRAPHER AND OPTICAL ENGINEER]
-      [TASK: PHOTOREALISTIC PERSPECTIVE TRANSFORMATION]
+      text: `[SYSTEM: SPATIAL_TRANSFORMATION_ENGINE_V3]
+      [INPUT_ANALYSIS: Precise physical reconstruction based on reference frame]
       
-      Modification Request: ${cameraPrompt}
+      Transformation Command: ${cameraPrompt}
+      ${creativeDirective}
       
-      Constraints:
-      1. EXACT SUBJECT PRESERVATION: The object in the source image must remain 100% identical in geometry, materials, and internal detail.
-      2. SPATIAL LOGIC: Re-calculate light, shadows, and perspective lines according to the new camera position.
-      3. LEVITATION PHYSICS: If floating is specified, render the object exactly 50cm from the floor. Use high-fidelity ambient occlusion and a soft contact shadow on the ground to visually confirm height.
-      4. OPTICAL QUALITY: Match the lens characteristic (wide-angle vs standard) and maintain consistent global illumination.
-      5. DETERMINISM: Use seed ${settings.seed} to maintain temporal consistency with previous renders.
+      TECHNICAL CONSTRAINTS:
+      1. GEOMETRY: The primary subject's identity, form, and texture must be preserved with 100% fidelity.
+      2. PERSPECTIVE: Recalculate all vanishing points and horizon lines based on the new camera orientation.
+      3. LIGHTING: Ensure ray-traced shadows and ambient occlusion align with the new spatial coordinates.
+      4. PHYSICS: If levitation is active, render soft contact shadows on the ground exactly beneath the floating object.
+      5. SEED: ${settings.seed} (Deterministic noise profile).
       
-      Final output must be a seamless, high-end photographic render.`
+      OUTPUT: High-resolution photographic masterpiece.`
     };
 
     const response = await ai.models.generateContent({
@@ -65,7 +67,7 @@ export class GeminiService {
       }
     }
 
-    if (!imageUrl) throw new Error("Processing Error: Spatial Engine returned no visual data.");
+    if (!imageUrl) throw new Error("CRITICAL_FAULT: Visual buffer reconstruction failed.");
     return imageUrl;
   }
 }

@@ -13,6 +13,7 @@ export interface GenerationSettings {
   width: number;
   steps: number;
   quality: 'flash' | 'pro';
+  creativeContext?: string;
 }
 
 export interface ImageData {
@@ -31,3 +32,5 @@ export interface GenerationResult {
   settings: GenerationSettings;
   cameraState: CameraControlState;
 }
+
+export type CameraPreset = 'default' | 'birdseye' | 'dutch' | 'macro' | 'low-angle' | 'wide-orbit';

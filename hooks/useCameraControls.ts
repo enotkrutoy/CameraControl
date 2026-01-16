@@ -17,36 +17,38 @@ export const useCameraControls = () => {
   const buildCameraPrompt = useCallback((s: CameraControlState): string => {
     const segments: string[] = [];
 
-    // Floating Effect (High Priority for spatial logic)
+    // Optical Core Directives
     if (s.floating) {
-      segments.push("The main object is levitating and floating 50 centimeters in mid-air above the floor. Ensure there is a soft, realistic ambient occlusion shadow cast directly onto the ground below the object to emphasize the height and depth. The object is suspended without support.");
+      segments.push("PHYSICS_OVERRIDE: Enable zero-gravity for primary subject. Position: 50cm vertical offset from ground plane. Render high-fidelity ambient occlusion (AO) and soft contact shadows on the floor. No visible supports.");
     } else if (s.rotate === 0 && s.forward === 0 && s.tilt === 0 && !s.wideAngle) {
       return "no camera movement";
     }
 
-    // Rotation
+    // Rotation & Orbit
     if (s.rotate !== 0) {
-      const direction = s.rotate > 0 ? "right" : "left";
-      segments.push(`Rotate the camera view ${Math.abs(s.rotate)} degrees to the ${direction}.`);
+      const direction = s.rotate > 0 ? "clockwise" : "counter-clockwise";
+      segments.push(`ORBIT_TRANSFORM: Pivot camera ${Math.abs(s.rotate)} degrees ${direction} around the center of interest. Recalculate global illumination for new azimuth.`);
     }
 
-    // Forward / Zoom
+    // Dolly / Zoom
     if (s.forward > 5) {
-      segments.push("Move the camera closer to the object for a tight shot.");
+      segments.push("DOLLY_IN: Move camera to extreme close-up (macro range). Increase depth of field (DoF) blur on background.");
     } else if (s.forward > 2) {
-      segments.push("Adjust focal length for a medium-close perspective.");
+      segments.push("DOLLY_IN: Advance camera to medium-shot range. Tighten perspective lines.");
     }
 
-    // Tilt / Pitch
+    // Pitch & Tilt
     if (s.tilt > 0.4) {
-      segments.push("Perspective shift to a high-angle shot looking down.");
+      segments.push("PITCH_TRANSFORM: High-angle 'God view' perspective looking down 45 degrees. Compress vertical subject data.");
     } else if (s.tilt < -0.4) {
-      segments.push("Perspective shift to a low-angle shot looking up.");
+      segments.push("PITCH_TRANSFORM: Low-angle 'Hero shot' perspective looking up. Exaggerate subject height and grandeur.");
     }
 
-    // Wide Angle
+    // Lens Characteristics
     if (s.wideAngle) {
-      segments.push("Use a wide-angle lens to capture more of the environment and create slight barrel distortion.");
+      segments.push("OPTICS_PROFILE: 14mm Ultra-wide lens. Apply subtle radial barrel distortion. Enhance peripheral environment detail and stretch vanishing points.");
+    } else {
+      segments.push("OPTICS_PROFILE: 50mm Prime lens. Natural perspective, zero distortion, human-eye field of view.");
     }
 
     return segments.join(" ");
