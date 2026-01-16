@@ -1,10 +1,9 @@
-
 {
   "name": "qwencam-studio",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Professional AI Camera Angle Studio - Production Ready",
+  "description": "Professional AI Camera Angle Studio",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
