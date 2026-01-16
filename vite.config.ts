@@ -8,11 +8,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
+      // Это критически важно для работы Gemini SDK в браузере
       'process.env.API_KEY': JSON.stringify(env.API_KEY || '')
     },
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      sourcemap: false,
       rollupOptions: {
         output: {
           manualChunks: {
@@ -22,6 +24,9 @@ export default defineConfig(({ mode }) => {
           }
         }
       }
+    },
+    server: {
+      port: 3000
     }
   };
 });
