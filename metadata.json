@@ -1,6 +1,6 @@
 {
-  "name": "Copy of QwenCam - AI Camera Angle Studio",
-  "description": "Professional AI-powered image editor that manipulates camera angles, focal lengths, and perspectives using structured prompt engineering and interactive 3D controls.",
+  "name": "QwenCam Studio v3",
+  "description": "Professional Spatial Intelligence Engine for AI Camera Angle Manipulation and Perspective Reconstruction.",
   "requestFramePermissions": [
     "camera"
   ]

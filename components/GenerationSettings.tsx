@@ -16,80 +16,65 @@ export const GenerationSettingsPanel: React.FC<Props> = ({ settings, onChange })
   };
 
   return (
-    <div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
+    <div className="bg-gray-900/40 rounded-xl border border-gray-800 overflow-hidden shadow-lg">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center p-4 hover:bg-gray-700/50 transition-colors"
+        className="w-full flex justify-between items-center p-4 hover:bg-gray-800/50 transition-colors"
       >
-        <span className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-          Generation Parameters
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          Engine Parameters
         </span>
         <svg 
-          className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className={`transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
         >
           <path d="m6 9 6 6 6-6"/>
         </svg>
       </button>
 
       {isOpen && (
-        <div className="p-4 border-t border-gray-700 space-y-4 bg-gray-900/50">
+        <div className="p-4 border-t border-gray-800 space-y-4 bg-gray-900/60 backdrop-blur-md">
+          {/* Quality Model Selection */}
+          <div className="flex items-center justify-between p-2 bg-gray-950 rounded-lg border border-gray-800">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Processing Node</span>
+            <div className="flex bg-gray-900 rounded-md p-1 gap-1">
+              {(['flash', 'pro'] as const).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => onChange({ quality: q })}
+                  className={`px-3 py-1 rounded text-[9px] font-black uppercase transition-all ${settings.quality === q ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Seed */}
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Seed</label>
+            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 block">Spatial Seed</label>
             <div className="flex gap-2">
               <input
                 type="number"
                 value={settings.seed}
                 onChange={(e) => onChange({ seed: parseInt(e.target.value) || 0 })}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-gray-950 border border-gray-800 rounded px-3 py-1.5 text-xs font-mono text-blue-400 focus:outline-none focus:border-blue-500/50"
               />
               <button 
                 onClick={randomizeSeed}
-                className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded transition-colors"
-                title="Randomize Seed"
+                className="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition-colors text-gray-400"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12V7.5a2.5 2.5 0 1 0-5 0V12a2.5 2.5 0 1 1-5 0V7.5a2.5 2.5 0 1 0-5 0V12"/><path d="m3 16 3 3 3-3"/><path d="M6 19v-4"/></svg>
               </button>
-            </div>
-          </div>
-
-          {/* Dimensions */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Width</label>
-              <select 
-                value={settings.width}
-                onChange={(e) => onChange({ width: parseInt(e.target.value) })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-gray-200"
-              >
-                {Array.from({ length: (DIMENSION_LIMITS.max - DIMENSION_LIMITS.min) / DIMENSION_LIMITS.step + 1 }).map((_, i) => {
-                  const val = DIMENSION_LIMITS.min + i * DIMENSION_LIMITS.step;
-                  return <option key={val} value={val}>{val}px</option>;
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Height</label>
-              <select 
-                value={settings.height}
-                onChange={(e) => onChange({ height: parseInt(e.target.value) })}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-gray-200"
-              >
-                {Array.from({ length: (DIMENSION_LIMITS.max - DIMENSION_LIMITS.min) / DIMENSION_LIMITS.step + 1 }).map((_, i) => {
-                  const val = DIMENSION_LIMITS.min + i * DIMENSION_LIMITS.step;
-                  return <option key={val} value={val}>{val}px</option>;
-                })}
-              </select>
             </div>
           </div>
 
           {/* Inference Steps */}
           <div>
             <div className="flex justify-between mb-1">
-              <label className="text-xs text-gray-400">Inference Steps</label>
-              <span className="text-xs font-mono text-blue-400">{settings.steps}</span>
+              <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Iterative Refinement</label>
+              <span className="text-[10px] font-mono text-blue-400">{settings.steps}</span>
             </div>
             <input
               type="range"
@@ -97,7 +82,7 @@ export const GenerationSettingsPanel: React.FC<Props> = ({ settings, onChange })
               max={STEPS_LIMITS.max}
               value={settings.steps}
               onChange={(e) => onChange({ steps: parseInt(e.target.value) })}
-              className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
           </div>
         </div>

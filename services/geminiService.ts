@@ -1,6 +1,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { ImageData, GenerationSettings } from "../types";
+import { MODELS } from "../constants";
 
 export class GeminiService {
   /**
@@ -11,14 +12,14 @@ export class GeminiService {
     cameraPrompt: string,
     settings: GenerationSettings
   ): Promise<string> {
-    // Note: process.env.API_KEY is replaced by Vite during build time
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      throw new Error("API Key is missing. Please set it in your environment variables.");
+      throw new Error("API Key is missing. Access restricted.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
+    const modelName = settings.quality === 'pro' ? MODELS.pro : MODELS.flash;
     
     const imagePart = {
       inlineData: {
@@ -28,21 +29,29 @@ export class GeminiService {
     };
 
     const textPart = {
-      text: `ACT AS A PROFESSIONAL PHOTOGRAPHER AND PERSPECTIVE ARTIST. 
-      Re-render this image following these spatial modifications: ${cameraPrompt}. 
+      text: `[SYSTEM_INSTRUCTION: ACT AS A MASTER CINEMATOGRAPHER AND OPTICAL ENGINEER]
+      [TASK: PHOTOREALISTIC PERSPECTIVE TRANSFORMATION]
       
-      CRITICAL INSTRUCTIONS:
-      1. Keep the main subject (the object) IDENTICAL in design, texture, and branding.
-      2. If floating/levitation is requested, ensure the object is clearly 50 centimeters in the air.
-      3. A CRITICAL element for levitation: Render a soft, accurate contact shadow (ambient occlusion) on the ground directly beneath the object to realistically show its height.
-      4. Maintain the background environment, floor tiling, and lighting perfectly.
-      5. Use the provided seed ${settings.seed} for deterministic results.
-      6. The final image should look like a single continuous high-end photograph with zero artifacts.`
+      Modification Request: ${cameraPrompt}
+      
+      Constraints:
+      1. EXACT SUBJECT PRESERVATION: The object in the source image must remain 100% identical in geometry, materials, and internal detail.
+      2. SPATIAL LOGIC: Re-calculate light, shadows, and perspective lines according to the new camera position.
+      3. LEVITATION PHYSICS: If floating is specified, render the object exactly 50cm from the floor. Use high-fidelity ambient occlusion and a soft contact shadow on the ground to visually confirm height.
+      4. OPTICAL QUALITY: Match the lens characteristic (wide-angle vs standard) and maintain consistent global illumination.
+      5. DETERMINISM: Use seed ${settings.seed} to maintain temporal consistency with previous renders.
+      
+      Final output must be a seamless, high-end photographic render.`
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: modelName,
       contents: { parts: [imagePart, textPart] },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+        }
+      }
     });
 
     let imageUrl = '';
@@ -56,7 +65,7 @@ export class GeminiService {
       }
     }
 
-    if (!imageUrl) throw new Error("Perspective transformation failed. No image returned from model.");
+    if (!imageUrl) throw new Error("Processing Error: Spatial Engine returned no visual data.");
     return imageUrl;
   }
 }

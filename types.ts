@@ -12,6 +12,7 @@ export interface GenerationSettings {
   height: number;
   width: number;
   steps: number;
+  quality: 'flash' | 'pro';
 }
 
 export interface ImageData {
@@ -23,6 +24,7 @@ export interface ImageData {
 }
 
 export interface GenerationResult {
+  id: string;
   imageUrl: string;
   prompt: string;
   timestamp: number;
