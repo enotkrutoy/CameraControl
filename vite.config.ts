@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // Строгая замена ключа для geminiService.ts
+      // Прямая замена для geminiService.ts
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
       // Глобальный полифилл для совместимости с кодом, использующим process.env
       'process.env': JSON.stringify({
