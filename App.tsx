@@ -80,6 +80,10 @@ const App: React.FC = () => {
     }
   };
 
+  /**
+   * Copies the result image to the system clipboard.
+   * Handles blob conversion and browser compatibility.
+   */
   const copyImageToClipboard = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!result?.imageUrl) return;
@@ -88,9 +92,13 @@ const App: React.FC = () => {
       setCopyStatus('idle');
       const response = await fetch(result.imageUrl);
       const blob = await response.blob();
+      
+      // PNG is the safest format for clipboard across browsers
+      const type = blob.type.includes('png') ? 'image/png' : blob.type;
+      
       await navigator.clipboard.write([
         new ClipboardItem({
-          [blob.type]: blob
+          [type]: blob
         })
       ]);
       setCopyStatus('success');
@@ -373,13 +381,13 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Lightbox Modal */}
+      {/* Full Size Lightbox Modal */}
       {isLightboxOpen && result && (
         <div 
           className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
           onClick={() => setIsLightboxOpen(false)}
         >
-          {/* Close Area */}
+          {/* Close Button Area */}
           <button 
             className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-[110] hover:scale-110 active:scale-90"
             onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
@@ -396,6 +404,7 @@ const App: React.FC = () => {
                 />
              </div>
              
+             {/* Modal Actions */}
              <div className="flex flex-wrap items-center justify-center gap-4 animate-in slide-in-from-bottom-4 duration-500 delay-150">
                 <button
                   onClick={copyImageToClipboard}
