@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { ImageData, GenerationSettings } from "../types";
 
@@ -21,15 +20,16 @@ export class GeminiService {
     };
 
     const textPart = {
-      text: `ACT AS A PROFESSIONAL PHOTOGRAPHER. 
+      text: `ACT AS A PROFESSIONAL PHOTOGRAPHER AND PERSPECTIVE ARTIST. 
       Re-render this image following these spatial modifications: ${cameraPrompt}. 
       
       CRITICAL INSTRUCTIONS:
-      1. Keep the main subject (the object) identical in design, texture, and branding.
-      2. If floating/levitation is requested, ensure the object is clearly in the air with a soft shadow on the floor below it to indicate elevation.
-      3. Maintain the background environment, lighting, and floor tiling perfectly.
-      4. Use the provided seed ${settings.seed} for deterministic results.
-      5. The final image should look like a single continuous shot with zero artifacts.`
+      1. Keep the main subject (the object) IDENTICAL in design, texture, and branding.
+      2. If floating/levitation is requested, ensure the object is clearly 50 centimeters in the air.
+      3. A CRITICAL element for levitation: Render a soft, accurate contact shadow (ambient occlusion) on the ground directly beneath the object to realistically show its height.
+      4. Maintain the background environment, floor tiling, and lighting perfectly.
+      5. Use the provided seed ${settings.seed} for deterministic results.
+      6. The final image should look like a single continuous high-end photograph with zero artifacts.`
     };
 
     const response = await ai.models.generateContent({
