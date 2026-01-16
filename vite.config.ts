@@ -3,15 +3,19 @@ import react from '@vitejs/plugin-react';
 import process from 'node:process';
 
 export default defineConfig(({ mode }) => {
+  // Загружаем переменные окружения из системы и .env файлов
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
     plugins: [react()],
     define: {
-      // Прямая замена для process.env.API_KEY
+      // Строгая замена ключа для geminiService.ts
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
-      // Глобальный полифилл process.env для предотвращения ошибок ReferenceError
-      'process.env': JSON.stringify(env)
+      // Глобальный полифилл для совместимости с кодом, использующим process.env
+      'process.env': JSON.stringify({
+        NODE_ENV: mode,
+        ...env
+      })
     },
     build: {
       outDir: 'dist',
