@@ -11,20 +11,6 @@ import { PromptConsole } from './components/PromptConsole';
 import { HistorySidebar } from './components/HistorySidebar';
 import { geminiService } from './services/geminiService';
 
-// Fix: Redefine the global window.aistudio property using the AIStudio interface name
-// as required by the environment's existing type definitions.
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey(): Promise<boolean>;
-    openSelectKey(): Promise<void>;
-  }
-
-  interface Window {
-    // The environment often defines this as a readonly property.
-    readonly aistudio: AIStudio;
-  }
-}
-
 const LOADING_MESSAGES = [
   "DEEP_SCAN: Analyzing subject geometry...",
   "VOXEL_MAP: Building volumetric occlusion...",
@@ -64,9 +50,10 @@ const App: React.FC = () => {
 
   const handleOpenKeyPicker = async () => {
     try {
-      await window.aistudio.openSelectKey();
+      // Use existing global aistudio object. Modifiers are handled externally.
+      await (window as any).aistudio.openSelectKey();
       setShowKeyPicker(false);
-      // Proceed to generate after selection assuming success as per guidelines
+      // Proceed to generate after selection assuming success as per guidelines.
       await startGenerationFlow();
     } catch (err) {
       setError("Failed to open key selection dialog.");
@@ -76,9 +63,9 @@ const App: React.FC = () => {
   const startGenerationFlow = async () => {
     if (!sourceImage) return;
     
-    // Check if Pro model is selected and handle key selection
+    // Check if Pro model is selected and handle key selection.
     if (settings.quality === 'pro') {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
+      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
       if (!hasKey) {
         setShowKeyPicker(true);
         return;
@@ -101,7 +88,7 @@ const App: React.FC = () => {
       addToHistory(newResult);
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) {
-        // Reset key selection if it failed due to invalid project/key
+        // Reset key selection if it failed due to invalid project/key.
         setShowKeyPicker(true);
       }
       setError(err.message || "SYSTEM_CRITICAL_FAULT: Operation timed out.");

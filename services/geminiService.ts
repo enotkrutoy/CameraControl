@@ -9,13 +9,9 @@ export class GeminiService {
     cameraPrompt: string,
     settings: GenerationSettings
   ): Promise<string> {
-    const apiKey = process.env.API_KEY;
-    
-    if (!apiKey) {
-      throw new Error("API Key is missing. Access restricted.");
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
+    // CRITICAL: Always use a fresh instance to ensure the latest API key from process.env is used.
+    // Initialization must use a named parameter: new GoogleGenAI({apiKey: process.env.API_KEY});
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const modelName = settings.quality === 'pro' ? MODELS.pro : MODELS.flash;
     
     const imagePart = {
@@ -31,38 +27,45 @@ export class GeminiService {
 
     const textPart = {
       text: `[SYSTEM: SPATIAL_TRANSFORMATION_ENGINE_V3]
-      [INPUT_ANALYSIS: Precise physical reconstruction based on reference frame]
-      
       Transformation Command: ${cameraPrompt}
       ${creativeDirective}
       
       TECHNICAL CONSTRAINTS:
-      1. GEOMETRY: The primary subject's identity, form, and texture must be preserved with 100% fidelity.
-      2. PERSPECTIVE: Recalculate all vanishing points and horizon lines based on the new camera orientation.
-      3. LIGHTING: Ensure ray-traced shadows and ambient occlusion align with the new spatial coordinates.
-      4. PHYSICS: If levitation is active, render soft contact shadows on the ground exactly beneath the floating object.
-      5. SEED: ${settings.seed} (Deterministic noise profile).
+      1. GEOMETRY: Preserve primary subject identity.
+      2. PERSPECTIVE: Recalculate vanishing points for new orientation.
+      3. LIGHTING: Ensure shadows align with spatial coordinates.
+      4. SEED: ${settings.seed}
       
-      OUTPUT: High-resolution photographic masterpiece.`
+      OUTPUT: High-resolution cinematic result.`
     };
+
+    const config: any = {
+      imageConfig: {
+        aspectRatio: "1:1",
+      }
+    };
+
+    // Support for higher resolutions if Pro model is selected
+    if (settings.quality === 'pro' && settings.imageSize) {
+      config.imageConfig.imageSize = settings.imageSize;
+    }
 
     const response = await ai.models.generateContent({
       model: modelName,
       contents: { parts: [imagePart, textPart] },
-      config: {
-        imageConfig: {
-          aspectRatio: "1:1",
-        }
-      }
+      config
     });
 
     let imageUrl = '';
     const candidate = response.candidates?.[0];
     if (candidate?.content?.parts) {
+      // Rule: Iterate through all parts to find the image part, do not assume it is the first part.
       for (const part of candidate.content.parts) {
         if (part.inlineData) {
           imageUrl = `data:image/png;base64,${part.inlineData.data}`;
           break;
+        } else if (part.text) {
+          console.debug("Model response text part:", part.text);
         }
       }
     }

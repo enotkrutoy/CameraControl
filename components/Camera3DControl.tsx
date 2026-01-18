@@ -15,7 +15,6 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const modelCameraRef = useRef<THREE.Group | null>(null);
   const coneRef = useRef<THREE.Mesh | null>(null);
-  const gizmoRingRef = useRef<THREE.Mesh | null>(null);
   const targetRef = useRef<THREE.Mesh | null>(null);
 
   const stateRef = useRef(state);
@@ -60,11 +59,9 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     resizeObserver.observe(containerRef.current);
     handleResize();
 
-    // Enhanced Grid
     const grid = new THREE.GridHelper(20, 20, 0x1e293b, 0x0f172a);
     scene.add(grid);
 
-    // Target Subject Representation
     const targetGeo = new THREE.IcosahedronGeometry(1, 1);
     const targetMat = new THREE.MeshStandardMaterial({ 
       color: 0x3b82f6, 
@@ -76,15 +73,12 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     scene.add(target);
     targetRef.current = target;
 
-    // Gizmo Orbit Ring
     const ringGeo = new THREE.TorusGeometry(4, 0.02, 16, 100);
     const ringMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.2 });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI / 2;
     scene.add(ring);
-    gizmoRingRef.current = ring;
 
-    // Camera Group
     const cameraGroup = new THREE.Group();
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(1, 0.6, 0.4),
@@ -100,7 +94,6 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     lens.position.z = 0.4;
     cameraGroup.add(lens);
 
-    // Dynamic Frustum
     const coneGeo = new THREE.ConeGeometry(1.2, 3, 4, 1, true);
     const coneMat = new THREE.MeshBasicMaterial({ 
       color: 0x3b82f6, 
@@ -117,15 +110,10 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     scene.add(cameraGroup);
     modelCameraRef.current = cameraGroup;
 
-    // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.2));
     const mainLight = new THREE.DirectionalLight(0xffffff, 2);
     mainLight.position.set(10, 20, 10);
     scene.add(mainLight);
-
-    const pointLight = new THREE.PointLight(0x3b82f6, 20);
-    pointLight.position.set(-5, 5, 5);
-    scene.add(pointLight);
 
     let isDragging = false;
     let isRotatingGizmo = false;
@@ -175,8 +163,9 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', () => { isDragging = false; isRotatingGizmo = false; });
 
+    let animationId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(animate);
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
@@ -184,8 +173,22 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     animate();
 
     return () => {
+      cancelAnimationFrame(animationId);
       resizeObserver.disconnect();
       canvas.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      
+      // PRODUCTION DISPOSAL
+      scene.traverse((object: any) => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach((mat: any) => mat.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
       renderer.dispose();
     };
   }, [onChange]); 
@@ -194,17 +197,11 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
     if (modelCameraRef.current && targetRef.current) {
       const angle = THREE.MathUtils.degToRad(state.rotate);
       const distance = 6 - state.forward * 0.3;
-      
-      // Orbit position
       modelCameraRef.current.position.x = Math.sin(angle) * distance;
       modelCameraRef.current.position.z = Math.cos(angle) * distance;
       modelCameraRef.current.position.y = (state.tilt * 4) + (state.floating ? 1.5 : 0);
-      
       modelCameraRef.current.lookAt(0, state.floating ? 1.5 : 0, 0);
-
-      // Target position
       targetRef.current.position.y = state.floating ? 1.5 : 0;
-      
       if (coneRef.current) {
         const scale = state.wideAngle ? 2.5 : 1;
         coneRef.current.scale.set(scale, 1, scale);
@@ -214,27 +211,12 @@ export const Camera3DControl: React.FC<Props> = ({ state, onChange }) => {
   }, [state]);
 
   return (
-    <div className="relative border border-white/5 rounded-[2rem] overflow-hidden bg-black/40 backdrop-blur-md">
+    <div className="relative border border-white/5 rounded-[2rem] overflow-hidden bg-black/40 backdrop-blur-md" role="region" aria-label="3D Camera Preview">
       <div ref={containerRef} className="w-full h-[350px] cursor-move" />
-      <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-[2rem]" />
-      
       <div className="absolute top-6 left-6 flex flex-col gap-2">
         <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full">
-          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
           <span className="text-[10px] font-black font-mono text-blue-400 uppercase tracking-widest">Spatial_Engine_v3.2</span>
-        </div>
-      </div>
-
-      <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
-        <div className="space-y-1 font-mono text-[9px] text-gray-500 uppercase font-bold">
-          <p>AZIMUTH: {state.rotate.toFixed(1)}°</p>
-          <p>PITCH: {(state.tilt * 45).toFixed(1)}°</p>
-          <p>ELEVATION: {state.floating ? '50.00cm' : '0.00cm'}</p>
-        </div>
-        <div className="flex gap-1.5">
-          <div className={`w-1 h-4 rounded-full transition-all ${state.floating ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]' : 'bg-white/10'}`} />
-          <div className={`w-1 h-4 rounded-full transition-all ${state.wideAngle ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-white/10'}`} />
-          <div className={`w-1 h-4 rounded-full transition-all ${state.rotate !== 0 ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-white/10'}`} />
         </div>
       </div>
     </div>

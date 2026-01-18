@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: GenerationSettings = {
   width: 1024,
   steps: 4,
   quality: 'flash',
+  imageSize: '1K',
   creativeContext: '',
 };
 

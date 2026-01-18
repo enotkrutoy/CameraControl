@@ -7,12 +7,15 @@ export interface CameraControlState {
   floating: boolean;
 }
 
+export type ImageSize = '1K' | '2K' | '4K';
+
 export interface GenerationSettings {
   seed: number;
   height: number;
   width: number;
   steps: number;
   quality: 'flash' | 'pro';
+  imageSize?: ImageSize;
   creativeContext?: string;
 }
 
